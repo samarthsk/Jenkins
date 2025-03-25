@@ -1,0 +1,39 @@
+pipeline {
+    agent any
+    environment {
+        BASE_DIR = "/Users/samarthkulkarni/Documents/Samarth_Documents/BITS/Notes/Semester-2/Introduction_to_DevOps/Assignment"
+    }
+    stages {
+        stage('Build & Test - Dev') {
+            steps {
+                echo 'Building & Testing in Dev...'
+                sh "cd \"${BASE_DIR}/Jenkins\" && /opt/homebrew/bin/mvn clean install"
+                sh "mkdir -p \"${BASE_DIR}/environments/dev\""
+                sh "[ -d \"${BASE_DIR}/Jenkins/target\" ] && cp -R \"${BASE_DIR}/Jenkins/target\" \"${BASE_DIR}/environments/dev/\" || echo 'No build artifacts found'"
+            }
+        }
+        stage('Deploy to Staging') {
+            steps {
+                echo 'Deploying to Staging...'
+                sh "mkdir -p \"${BASE_DIR}/environments/staging\""
+                sh "[ -d \"${BASE_DIR}/environments/dev\" ] && cp -R \"${BASE_DIR}/environments/dev\"/* \"${BASE_DIR}/environments/staging/\" || echo 'Dev environment is empty, skipping copy'"
+            }
+        }
+        stage('Deploy to Production') {
+            steps {
+                input message: 'Approve deployment to production?'
+                echo 'Deploying to Production...'
+                sh "mkdir -p \"${BASE_DIR}/environments/prod\""
+                sh "[ -d \"${BASE_DIR}/environments/staging\" ] && cp -R \"${BASE_DIR}/environments/staging\"/* \"${BASE_DIR}/environments/prod/\" || echo 'Staging environment is empty, skipping copy'"
+            }
+        }
+    }
+    post {
+        always {
+            echo 'Pipeline execution complete!'
+        }
+        failure {
+            echo 'Pipeline failed. Check logs in Jenkins Dashboard.'
+        }
+    }
+}
